@@ -1,27 +1,78 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from './modules/database/database.module';
-import { HistoryModule } from './modules/history/history.module';
-import { GenerateModule } from './modules/generate/generate.module';
+import { UsersModule } from './routers/users/users.module';
+import { LoginModule } from './routers/login/login.module';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from './filter/all-exceptions.filter';
+import { AuthModule } from './logical/auth/auth.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { RolesModule } from './routers/roles/roles.module';
+import { UploadModule } from './routers/upload/upload.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ComponModule } from './routers/compon/compon.module';
+import { SmsModule } from './routers/sms/sms.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import config from './config/config';
-
-const appEnv =
-  process.env.APP_ENV ||
-  (process.env.NODE_ENV === 'production' ? 'prod' : process.env.NODE_ENV === 'test' ? 'test' : 'dev');
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { StoryboardModule } from './routers/storyboard/storyboard.module';
 
 @Module({
   imports: [
+    LoginModule,
+    AuthModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'documentation'),
+      serveRoot: '/doc',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'src/assets'),
+      serveRoot: '/asset',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'web'),
+      serveRoot: '',
+    }),
+    /** 环境变量配置 */
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', `.env.${appEnv}`],
       load: [config],
-      cache: true,
-      expandVariables: true,
-      override: true,
     }),
-    DatabaseModule,
-    HistoryModule,
-    GenerateModule,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule], // 记得导入 ConfigModule
+      useFactory: async (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('database.host'),
+        port: configService.get<number>('database.port'),
+        username: configService.get<string>('database.username'),
+        password: configService.get<string>('database.password'),
+        database: configService.get<string>('database.database'),
+        synchronize: process.env.NODE_ENV !== 'production' && process.env.APP_ENV !== 'prod',
+        autoLoadEntities: true,
+        migrationsRun: process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'prod',
+        migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
+      }),
+      inject: [ConfigService],
+    }),
+    RedisModule.forRootAsync({
+      imports: [ConfigModule], // 记得导入 ConfigModule
+      useFactory: async (configService: ConfigService) => ({
+        type: 'single',
+        url: `redis://${configService.get<string>('redis.host')}:${configService.get<string>('redis.port')}`,
+      }),
+      inject: [ConfigService],
+    }),
+    UsersModule,
+    RolesModule,
+    UploadModule,
+    ComponModule,
+    SmsModule,
+    StoryboardModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
   ],
 })
 export class AppModule {}

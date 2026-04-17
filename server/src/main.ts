@@ -1,38 +1,43 @@
 import { NestFactory } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as fs from 'fs';
+import { AllExceptionsFilter } from './filter/all-exceptions.filter';
 import { AppModule } from './app.module';
+import { logger } from './middleware/logger.middleware';
 import * as express from 'express';
-import * as path from 'path';
+import { TransformInterceptor } from './interceptor/transform.interceptor';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const configService = app.get(ConfigService);
-  const appEnv = configService.get<string>('appEnv') || 'dev';
-  
-  // 启用 CORS
-  app.enableCors();
-  
-  // 生产环境：提供静态文件服务
-  const isProduction = appEnv === 'prod';
-  if (isProduction) {
-    const staticPath = path.join(__dirname, '../../dist');
-    app.use(express.static(staticPath));
-    
-    // SPA 回退：所有非 API 路由返回 index.html
-    app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-      if (!req.path.startsWith('/api') && !req.path.startsWith('/health')) {
-        res.sendFile(path.join(staticPath, 'index.html'));
-      } else {
-        next();
-      }
-    });
-  }
-  
-  // 生产环境使用 5000 端口，开发环境使用 8000 端口
-  const port = configService.get<number>('port') ?? (isProduction ? 5000 : 8000);
-  await app.listen(port);
-  
-  console.log(`JinPikaStoryboards Server running on port ${port}`);
-}
+  const app = await NestFactory.create(AppModule, { logger: console });
 
+  // 日志系统同时解决参数日志打印问题
+  app.use(express.json({ limit: '50mb' })); // For parsing application/json
+  app.use(express.urlencoded({ extended: true, limit: '50mb' })); // For parsing application/x-www-form-urlencoded
+  app.use(logger);
+
+  // 使用全局拦截器打印出参
+  app.useGlobalInterceptors(new TransformInterceptor());
+
+  const options = new DocumentBuilder()
+    .setTitle('JinPiKa')
+    .setDescription('nest-admin后台接口')
+    .setVersion('1.0')
+    .setContact(
+      'JinPiKa',
+      'https://gitee.com/jinxin0517/nest-admin',
+      '847164495@qq.com',
+    )
+    .build();
+  const document = SwaggerModule.createDocument(app, options);
+  /** 生成swagger json使用apifox直接导入 */
+  fs.writeFileSync('./swagger-spec.json', JSON.stringify(document));
+  SwaggerModule.setup('docs', app, document);
+
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('port');
+  await app.listen(port);
+}
 bootstrap();
