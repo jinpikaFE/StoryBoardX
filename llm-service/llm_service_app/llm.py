@@ -13,10 +13,13 @@ def create_chat_and_messages(payload: dict, app_config: AppConfig):
     except Exception as e:
         raise LlmRuntimeError("LangChain dependencies not installed") from e
 
+    if not app_config.openai_api_key:
+        raise LlmRuntimeError("OPENAI_API_KEY not configured")
+
     chat = ChatOpenAI(
         base_url=app_config.openai_base_url,
         model=payload.get("model") or app_config.openai_model,
-        api_key=app_config.openai_api_key,
+        openai_api_key=app_config.openai_api_key,
         temperature=app_config.llm_temperature,
     )
     messages = [
@@ -24,4 +27,3 @@ def create_chat_and_messages(payload: dict, app_config: AppConfig):
         HumanMessage(content=build_user_prompt(payload)),
     ]
     return chat, messages
-

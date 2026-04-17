@@ -11,7 +11,7 @@ export class LlmService {
     body: StoryboardConfigDto,
     abortSignal?: AbortSignal,
   ): Promise<Readable> {
-    const baseUrl = this.configService.get<string>('llm.baseUrl');
+    const baseUrl = this.configService.get<string>('llm.baseUrl') || 'http://127.0.0.1:7001';
     const url = `${baseUrl.replace(/\/$/, '')}/api/generate`;
 
     const response = await fetch(url, {
@@ -24,7 +24,10 @@ export class LlmService {
     });
 
     if (!response.ok || !response.body) {
-      throw new Error('LLM service unavailable');
+      const responseText = await response.text().catch(() => '');
+      const trimmedText = responseText.trim();
+      const detail = trimmedText ? trimmedText.slice(0, 800) : `HTTP ${response.status}`;
+      throw new Error(`LLM service error: ${detail}`);
     }
 
     return Readable.fromWeb(response.body as any);

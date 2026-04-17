@@ -24,8 +24,13 @@ def generate():
                 if content:
                     yield sse_json({"content": content})
             yield sse_data("[DONE]")
-        except Exception:
-            yield sse_json({"error": "生成失败"})
+        except Exception as e:
+            error_type = type(e).__name__
+            error_message = str(e).strip()
+            if error_message:
+                yield sse_json({"error": f"{error_type}: {error_message}"})
+            else:
+                yield sse_json({"error": error_type})
             yield sse_data("[DONE]")
 
     return Response(
@@ -36,4 +41,3 @@ def generate():
             "Connection": "keep-alive",
         },
     )
-

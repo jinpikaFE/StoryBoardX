@@ -23,9 +23,18 @@ export class GenerateController {
 
     try {
       const upstreamStream = await this.llmService.createGenerateStream(body, abortController.signal);
+      upstreamStream.on('error', (err) => {
+        if (abortController.signal.aborted) return;
+        if (res.writableEnded) return;
+        const message = err instanceof Error ? err.message : '生成失败';
+        res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      });
       upstreamStream.pipe(res);
     } catch (error) {
-      res.write(`data: ${JSON.stringify({ error: '生成失败' })}\n\n`);
+      const message = error instanceof Error ? error.message : '生成失败';
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
       res.write('data: [DONE]\n\n');
       res.end();
     }

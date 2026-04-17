@@ -81,6 +81,11 @@ export async function generateStoryboard(
 
           try {
             const parsed = JSON.parse(data);
+            if (parsed.error) {
+              onError(String(parsed.error));
+              await reader.cancel();
+              return;
+            }
             if (parsed.content) {
               fullContent += parsed.content;
               onChunk(fullContent);
