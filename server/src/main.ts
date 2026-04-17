@@ -1,17 +1,19 @@
-import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const appEnv = configService.get<string>('appEnv') || 'dev';
   
   // 启用 CORS
   app.enableCors();
   
   // 生产环境：提供静态文件服务
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = appEnv === 'prod';
   if (isProduction) {
     const staticPath = path.join(__dirname, '../../dist');
     app.use(express.static(staticPath));
@@ -27,7 +29,7 @@ async function bootstrap() {
   }
   
   // 生产环境使用 5000 端口，开发环境使用 8000 端口
-  const port = isProduction ? 5000 : (process.env.SERVER_PORT || 8000);
+  const port = configService.get<number>('port') ?? (isProduction ? 5000 : 8000);
   await app.listen(port);
   
   console.log(`JinPikaStoryboards Server running on port ${port}`);

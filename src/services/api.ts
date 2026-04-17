@@ -1,6 +1,6 @@
 import { StoryboardConfig, HistoryItem } from '@/types';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 // 生成分镜提示词（流式）
 export async function generateStoryboard(

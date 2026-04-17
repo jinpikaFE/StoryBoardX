@@ -16,10 +16,15 @@ coverage/
 
 # Environment variables
 .env
+.env.dev
+.env.test
+.env.prod
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.dev.local
+.env.prod.local
 
 # Logs
 logs/
