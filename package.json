@@ -10,6 +10,7 @@
     "dev:fe:dev": "vite --mode dev",
     "dev:fe:test": "vite --mode test",
     "dev:fe:prod": "vite --mode prod",
+    "dev:llm": "python llm-service/app.py",
     "dev:be": "pnpm --filter \"./server\" start",
     "dev:be:dev": "pnpm --filter \"./server\" start",
     "dev:be:test": "pnpm --filter \"./server\" start",

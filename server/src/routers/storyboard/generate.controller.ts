@@ -16,20 +16,18 @@ export class GenerateController {
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
 
-    let closed = false;
+    const abortController = new AbortController();
     res.on('close', () => {
-      closed = true;
+      abortController.abort();
     });
 
-    for await (const chunk of this.llmService.generateStoryboard(body)) {
-      if (closed) break;
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-    }
-
-    if (!closed) {
+    try {
+      const upstreamStream = await this.llmService.createGenerateStream(body, abortController.signal);
+      upstreamStream.pipe(res);
+    } catch (error) {
+      res.write(`data: ${JSON.stringify({ error: '生成失败' })}\n\n`);
       res.write('data: [DONE]\n\n');
       res.end();
     }
   }
 }
-

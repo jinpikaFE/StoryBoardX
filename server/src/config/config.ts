@@ -7,6 +7,9 @@ export default () => ({
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_DATABASE,
   },
+  llm: {
+    baseUrl: process.env.LLM_SERVICE_URL || 'http://127.0.0.1:7001',
+  },
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,
