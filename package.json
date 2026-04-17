@@ -2,11 +2,17 @@
   "name": "jinpika-storyboards-frontend",
   "version": "1.0.0",
   "description": "JinPikaStoryboards - AI分镜提示词生成器前端",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:fe": "vite",
+    "dev:be": "pnpm --filter server start:dev",
     "build": "tsc && vite build",
+    "build:fe": "tsc && vite build",
+    "build:be": "pnpm --filter server build",
     "preview": "vite preview",
+    "start:be": "pnpm --filter server start",
     "lint": "eslint",
     "ts-check": "tsc --noEmit"
   },
